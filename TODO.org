@@ -1,0 +1,539 @@
+
+* TODO
+ - [X] try growing tail
+ - [X] add legs
+ - [X] implement CTRNN
+ - [X] implement GA
+ - [X] use leg collision
+ - [X] make sure the tadpole can rotate its body
+ - [X] use linear combination of sensors for motor neuron input
+ - [X] compile to C for use with ALPS
+ - [X] try -k v for collisions where 0 < k < 1
+ - [X] fix the framerate for list animate
+ - [X] double check units for the viscosity
+ - [ ] alps error
+       "=> Error, parents not sorted."  What's this about?
+ - [X] look up Michael Schmidt's work on ALPS-lite
+ - [X] get the frog sim working with CTRNN
+ - [X] flesh out the experiments 
+
+       There are six different morphological experiments with two
+       cases for the brain a) normal or b) lobotomised.  So twelve
+       experiments need to be run in total.  
+ - [X] get the frog metamorphosis working in C 
+ - [X] use a GA to find the best numerical values for m, kg, and s
+       find a sample of arguments that perform badly.  
+       create a new compiled solution that runs with extra constants for m, kg, and s
+       find the values that will do the best against that set
+ - [X] do the changed m and kg values affect the actual simulation?  Find out. 
+       They did change the simulation because I had a unit problem.  Fixed now.
+ - [X] run with alps
+ - [X] dump the alps population, figure out how to read it into mathematica.
+       Partly done.  How best to log all the results.
+ - [X] run with alps doing simplified logging.
+
+       Try to do just one complete test run evolve to do one task with
+       one target.  If fitness > 0.5, it completes that phase.  Count
+       the number of evaluations.  
+
+ - [ ] Might want to increase the distance from the target.
+
+       Yes. Tried with distance of 0.04, but it didn't attract a lot of success.
+
+ - [-] Invalidate the fitness cache after the fitness function has
+       changed to a new stage.
+
+       I don't think any fitness is cached.  
+
+ - [X] Save population after each stage is complete.
+
+ - [X] handle CTRL-C in alps_frog so that runs can be halted.  
+
+       Should I consider giving a population to it so they can be resumed?
+       
+
+ - [X] Implement independent brains
+       
+       should sensors be different for the brains?  Yes.
+       
+ - [ ] consider using the pareto age GA (implement in C)
+ - [ ] bug with best_individual code
+ - [ ] just write your own get_best_individual maybe
+
+ - [X] add this line to frogRHS.c automatically.
+  on line 688, 714
+  static mreal *P0, *P1, *P2, *P3; // XXX Mathematica is not creating this line--BAD!
+ - [ ] add time based termination to simulation
+       some time limit per simulation
+       some time limit per evolution
+ - [X] be able to detect collision events
+ - [X] fix the physical interpretation to some actual 3D physical form
+ - [ ] add section for numerical simulation
+ - [ ] get working for cloud computation
+ - [X] make all physical constants alterable at runtime
+ - [ ] need some kind of physical test suite or means of measuring
+       whether the simulation is working the way it ought to
+ - [ ] I need things that can move!  These things don't move!
+
+       Use a periodic controller, see how fast things can move forward.
+       Use that periodic controller as the test bed for choosing the 
+       environment settings.
+
+ - [ ] Write Luc an email
+* Problem
+deriv 
+  t 1.000000 
+  q 0.010000 0.010000 0.010000 0.010000 
+    0.010000 0.010000 0.010000 0.010000 
+  u 0.002147 -0.002210 -0.040243 0.083362 
+    0.083212 0.083225 0.083193 0.083233 
+  y nan nan nan nan nan 
+  g 0.000000 0.000000 
+  r 0.000000 0.010000 
+* Experiment Ideas
+  The controller could be not only independent but fixed after it had
+  initially evolved.  
+
+  What about going in the other direction complex -> simple.  That
+  obviously shouldn't work, right?
+
+  Would it evolve faster with a fixed, independent simple controller?
+
+* How to record average distance from target
+  
+  Add a new diff equation to the set:
+  dr/dt = distance from target
+
+  r[t] = t * distance
+
+  fitness = average distance over time = r[t]/t
+
+* Fix the morphing numerical error
+  1. use a GA to find the right constants for mass and length, etc.
+
+  2. use a smaller step size h
+
+  3. use something like runge kutta
+
+* bug
+  can I run the frog morph solver for a longer time than the experiments allow? Yes.
+* Results from rkqs simulation
+  30000 evaluations in 1532 seconds, which is ~0.05 seconds/evaluation or
+  ~19.6 evaluations/second
+
+  1532 seconds = 25m32s
+  
+  max evaluations required for experiment
+
+  6 morphologies
+    total phases 2 * 4 * 4
+  targets 4
+  lobotomises 2
+
+  2 * 4 * 4 * 4 * 2 = 256
+
+  if max_evaluation_time_per_phase = 25 minutes
+    256 * 25 = 6400 minutes
+
+    6400 min = 106 hour = 4.5 day
+* find max speed
+  ./run-expr -F 1 Ap 1 0
+  | time_max | mean_speed | evaluations |
+  |     10.0 |    2.13e-3 |       16000 |
+  |     20.0 |    1.18e-2 |        6400 |
+  |     30.0 |    1.32e-2 |        2000 |
+
+  Using just regular bga.m
+
+  | time_max | mean_speed | evaluations | experiment | phase |
+  |     20.0 |      0.005 |      150000 | Ap         |     1 |
+  |       20 |            |        4882 | Ap         |     4 |
+  |          |            |             |            |       |
+* autolev will do the C file creation!
+output eqns[1],eqns[2],eqns[3],eqns[4],eqns[5],eqns[6],eqns[7],eqns[8]
+code algebraic() eqns.c
+
+
+The following doesn't really work. 
+output u1',u2',u3',u4',u5',u6',u7',u8'
+code algebraic() doteqns.c
+
+makeDiffLinearPiecewise
+Function[{x$},\[Piecewise]	
+If[tpts[1]==tpts[3],tpts[4],(tpts[4]-tpts[2])/(tpts[3]-tpts[1])]	tpts[1]<=x$<tpts[3]
+If[tpts[3]==tpts[5],tpts[6],(tpts[6]-tpts[4])/(tpts[5]-tpts[3])]	tpts[3]<=x$<tpts[5]
+0	True
+
+
+
+]
+
+* If using krb and krc are worth it, then here's the plan
+  Make krc into krcr (right) and krcl (left).
+  
+  Write code to strip out important parts from eqns.c.
+
+  Write code in Mathematica to take the eqns matrix and do the following:
+
+vars = Map[#'[t] &, {u1, u2, u3, u4, u5, u6, u7, u8}]
+CoefficientArrays[eqns1, vars]
+{m0, m1} = Normal[%]
+
+  Then solve for u in  m0 . u = -m1 and it's done.
+* Write Luc
+  Paper or data?
+  data
+* Perhaps the tasks should be that there is a current
+
+yes.
+
+* Results of running physicsGa with a periodic controller
+
+  mean_speed 0.01 m/s for trials over period 1, 2, 4, 1
+  
+  These are some good values for the simulation.
+{Tmax -> 1/1000, kTa -> -0.00423449, kTb -> -6.6176*10^-6, 
+ kFa -> -0.0001, kFb -> -20., krb -> -0.392443, P -> 1}
+
+{0.932722,0.974615,0.263539,0.229476,0.998992,0.376426,0.0251018}
+
+{0.932722,1,0.0746009,0,1,0.376426,0}
+
+{0.932722,1,0,0,1,0.364205,0}
+
+{1,1,0.363013,0.105396,1,0.753401,0.079405}
+
+{1,1,0.212535,0.105396,1,0.741468,0.0487105}
+
+{1,0.969951,0.117928,0,0.899441,0.575204,0}
+
+{1,0.969951,0.117928,0,1,0.482833,0}
+
+
+{1,0.967328,0.0567434,0,1,0.303778,0}
+
+
+{Tmax -> 0.000718821, kTa -> -0.00515681, kTb -> -0.0000740018, 
+ kFa -> -0.00001, kFb -> -40., krb -> 0.483058, P -> 2.45023}
+
+{1,0.967328,0.525969,0,1,0.824505,0}
+
+{0.714155,0.949381,0.621323,0,1,0.647053,0.202168}
+
+{0.714155,0.949381,0.737392,0,1,0.734799,0.282316}
+
+- - - 
+
+mean_speed 0.01
+
+{Tmax -> 0.000833414, kTa -> -0.00471398, kTb -> -0.0000335441, 
+ kFa -> -0.00001, kFb -> -100., krb -> -0.554415, P -> 1.9931}
+
+{0.714155,0.949381,0.509428,0,0.898525,0.544746,0.186111}
+
+{0.714155,0.949381,0.385095,0.00614009,1,0.222792,0.243066}
+
+{0.730215,0.949381,0.385095,0.0100187,1,0.222792,0.172679}
+
+{0.730215,0.953814,0.328728,0,1,0.222792,0.19862}
+
+- - - 
+mean_speed 0.01
+{Tmax -> 0.000833414, kTa -> -0.00471398, kTb -> -0.0000335441, 
+ kFa -> -0.001, kFb -> -100., krb -> -0.554415, P -> 1.9931}
+
+mean_speed 0.01
+{Tmax -> 0.000833414, kTa -> -0.00515681, kTb -> -0.0000335441, 
+ kFa -> -0.001, kFb -> -100., krb -> -0.554415, P -> 1.90515}
+
+Best period 1.93906 with a mean_time of 0.0145
+* How to add new constants
+** params.m
+  - update constantsLayout
+  - update constantsCount
+    - add count
+    - add begin
+** export-c-code.m
+  - update makeFrogMorphDiff[] call to makeDiffFuncWithConstants[]
+** frog-ga.m
+  - update argsForTarget[]
+* How to add new variables
+** export-c-code.m
+   - update makeFrogMorphDiff[]
+   - 
+** params.m
+** run-simulation.h
+* Need a better fitness function for physics
+  It should be stable for a range of values.  
+
+
+{Tmax -> 0.00228531, kTa -> -0.0001, kTb -> -0.000010346, 
+ kFa -> -0.444462, kFb -> -38.9811, krb -> 0.0774702}
+- - -
+
+{Tmax -> 0.000869623, kTa -> -0.0001, kTb -> -1.*10^-6, 
+ kFa -> -0.691528, kFb -> -50.2169, krb -> -0.632065}
+
+{{{4.43, -0.0001}, {10., 0.00606927}, {10., 
+   0.000208243}}, {{4.43, -0.00396932}, {10., -0.00312771}, {10., \
+-0.00124179}}}
+
+- - -
+
+{Tmax -> 0.00127648, kTa -> -0.0001, kTb -> -1.*10^-6, 
+ kFa -> -0.60544, kFb -> -50.2169, krb -> -0.8982}
+
+{{10.,0.00800062},{5.01,-0.0001},{3.24,-0.0001}}
+
+{{10.,-0.00330318},{5.01,0.0049846},{3.24,0.00236741}}
+
+Behaves a little funny.
+
+- - -
+
+{Tmax -> 0.00249832, kTa -> -0.0001, kTb -> -1.*10^-6, 
+ kFa -> -0.665985, kFb -> -17.3329, krb -> -0.386061}
+
+{{10.,0.0156169},{10.,0.00146063},{10.,0.00203503}}
+
+{{10.,0.00237452},{10.,-0.00375585},{10.,0.00146965}}
+
+Better, still swims funny.
+
+- - -
+
+{Tmax -> 0.00337913, kTa -> -0.000154239, kTb -> -1.*10^-6, 
+ kFa -> -0.127913, kFb -> -16.439, krb -> 0.176239, kTc -> -1.*10^-6, 
+ kFc -> -16.439, krc -> 0.176239}
+
+{{10.,0.139975},{10.,0.0743021},{10.,0.137669}}
+
+{{10.,0.00602134},{10.,0.00398244},{10.,0.00217949}}
+
+LEFT OFF FINDING GOOD PHYSICS VALUES FOR Ap phase 4 then Ao phase 3
+
+- - -
+
+{{0.749726,0.999457,0.136982,0,0,0.874195},0.903152,{Tmax->0.000997478,kTa->-0.000154239,kTb->-0.0000145612,kFa->-0.001,kFb->-0.001,krb->0.748389,kTc->-0.0000145612,kFc->-0.001,krc->0.748389}}
+
+{{0.882201,0.999457,0.,0,0.0191531,0.829804},0.81579,{Tmax->0.00337913,kTa->-0.000154239,kTb->-1.*10^-6,kFa->-0.001,kFb->-1.9163,krb->0.659609,kTc->-1.*10^-6,kFc->-1.9163,krc->0.659609}}
+
+{{0.971721,1,0,0,0.0446519,0.224368},0.71122,{Tmax->0.00770698,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.001,kFb->-4.46615,krb->-0.551264,kTc->-1.*10^-6,kFc->-4.46615,krc->-0.551264}}
+
+{{1,1,0.,0,0,0.224368},11.6021,{Tmax->1/100,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.001,kFb->-0.001,krb->-0.551264,kTc->-1.*10^-6,kFc->-0.001,krc->-0.551264}}
+
+{{0.979025,1,0,0,0,0.730882},7.63113,{Tmax->0.00824326,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.001,kFb->-0.001,krb->0.461764,kTc->-1.*10^-6,kFc->-0.001,krc->0.461764}}
+
+{{0.963496,1,0.0176214,0,0,0.883976},2.15366,{Tmax->0.0071447,kTa->-0.0001,kTb->-2.74452*10^-6,kFa->-0.001,kFb->-0.001,krb->0.767951,kTc->-2.74452*10^-6,kFc->-0.001,krc->0.767951}}
+
+- - - 
+
+run with Ap phase 4
+
+{{0.449423,0.919931,0.0844202,0.473118,0.33322,0.718317},248191.,{Tmax->0.0000627611,kTa->-0.00809891,kTb->-9.3576*10^-6,kFa->-0.473645,kFb->-33.3226,krb->0.436633,kTc->-9.3576*10^-6,kFc->-33.3226,krc->0.436633}}
+
+{{0.922689,1,0,0.793437,0.0863317,1},1230.15,{Tmax->0.00490633,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.793643,kFb->-8.63409,krb->1,kTc->-1.*10^-6,kFc->-8.63409,krc->1}}
+
+{{1,1,0,0.660564,0.0511289,0.610572},2934.25,{Tmax->1/100,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.660904,kFb->-5.11383,krb->0.221145,kTc->-1.*10^-6,kFc->-5.11383,krc->0.221145}}
+
+{{0.947365,1,0,1,0.0863317,0.821221},20627.,{Tmax->0.00615828,kTa->-0.0001,kTb->-1.*10^-6,kFa->-1.,kFb->-8.63409,krb->0.642442,kTc->-1.*10^-6,kFc->-8.63409,krc->0.642442}}
+
+{{0.947365,1,0,0.915551,0.0863317,0.86733},2159.28,{Tmax->0.00615828,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.915636,kFb->-8.63409,krb->0.734661,kTc->-1.*10^-6,kFc->-8.63409,krc->0.734661}}
+
+{{0.947365,1,0.00262388,0.806027,0.0923047,0.711503},2934.86,{Tmax->0.00615828,kTa->-0.0001,kTb->-1.25976*10^-6,kFa->-0.806221,kFb->-9.23137,krb->0.423007,kTc->-1.25976*10^-6,kFc->-9.23137,krc->0.423007}}
+
+{{0.948169,0.999764,0.0303776,0.646303,0.0436288,0.335086},442.635,{Tmax->0.00620405,kTa->-0.000123625,kTb->-4.00738*10^-6,kFa->-0.646657,kFb->-4.36384,krb->-0.329827,kTc->-4.00738*10^-6,kFc->-4.36384,krc->-0.329827}}
+
+{{0.946698,1,0.0154731,1,0.0798021,1},2366.77,{Tmax->0.00612056,kTa->-0.0001,kTb->-2.53184*10^-6,kFa->-1.,kFb->-7.98113,krb->1,kTc->-2.53184*10^-6,kFc->-7.98113,krc->1}}
+
+{{0.948169,1,0.00874196,0.691793,0.0759771,0.565834},8755.42,{Tmax->0.00620405,kTa->-0.0001,kTb->-1.86545*10^-6,kFa->-0.692101,kFb->-7.59863,krb->0.131668,kTc->-1.86545*10^-6,kFc->-7.59863,krc->0.131668}}
+
+{{0.948169,1,0.00874196,0.833269,0.0759771,0.512605},11775.6,{Tmax->0.00620405,kTa->-0.0001,kTb->-1.86545*10^-6,kFa->-0.833436,kFb->-7.59863,krb->0.0252105,kTc->-1.86545*10^-6,kFc->-7.59863,krc->0.0252105}}
+
+{{0.950743,1,0.00874196,0.868175,0.071089,0.196142},8734.96,{Tmax->0.00635292,kTa->-0.0001,kTb->-1.86545*10^-6,kFa->-0.868307,kFb->-7.10983,krb->-0.607717,kTc->-1.86545*10^-6,kFc->-7.10983,krc->-0.607717}}
+
+{{0.950743,1,0.00523872,0.77834,0.0759771,0.105938},5463.37,{Tmax->0.00635292,kTa->-0.0001,kTb->-1.51863*10^-6,kFa->-0.778562,kFb->-7.59863,krb->-0.788124,kTc->-1.51863*10^-6,kFc->-7.59863,krc->-0.788124}}
+
+{{0.955899,1,0,0.811148,0.0759771,0.269183},3936.3,{Tmax->0.00666188,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.811337,kFb->-7.59863,krb->-0.461634,kTc->-1.*10^-6,kFc->-7.59863,krc->-0.461634}}
+
+{{0.955899,1,0.00429091,0.893891,0.0759771,0},7563.55,{Tmax->0.00666188,kTa->-0.0001,kTb->-1.4248*10^-6,kFa->-0.893997,kFb->-7.59863,krb->-1,kTc->-1.4248*10^-6,kFc->-7.59863,krc->-1}}
+
+{{0.955452,1,0.00429091,1,0.0759771,0},12135.,{Tmax->0.00663449,kTa->-0.0001,kTb->-1.4248*10^-6,kFa->-1.,kFb->-7.59863,krb->-1,kTc->-1.4248*10^-6,kFc->-7.59863,krc->-1}}
+
+{{0.908327,1,0,1,0.112237,0},686.534,{Tmax->0.0042984,kTa->-0.0001,kTb->-1.*10^-6,kFa->-1.,kFb->-11.2246,krb->-1,kTc->-1.*10^-6,kFc->-11.2246,krc->-1}}
+
+{{0.908327,1,0,0.875147,0.112237,0},2713.19,{Tmax->0.0042984,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.875272,kFb->-11.2246,krb->-1,kTc->-1.*10^-6,kFc->-11.2246,krc->-1}}
+
+{{0.913994,1,0,0.98806,0.112237,0.144071},2310.39,{Tmax->0.00452871,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.988071,kFb->-11.2246,krb->-0.711859,kTc->-1.*10^-6,kFc->-11.2246,krc->-0.711859}}
+
+{{0.793013,1,0.0301599,0.907158,0.243675,0.484067},1542.77,{Tmax->0.00148611,kTa->-0.0001,kTb->-3.98583*10^-6,kFa->-0.907251,kFb->-24.3683,krb->-0.0318652,kTc->-3.98583*10^-6,kFc->-24.3683,krc->-0.0318652}}
+
+{{0.937264,1,0,0.927864,0.0656443,0.324767},1245.2,{Tmax->0.00561119,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.927936,kFb->-6.56536,krb->-0.350467,kTc->-1.*10^-6,kFc->-6.56536,krc->-0.350467}}
+
+{{0.937264,1,0,0.285986,0.0953091,0.817567},2001.45,{Tmax->0.00561119,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.2867,kFb->-9.53181,krb->0.635134,kTc->-1.*10^-6,kFc->-9.53181,krc->0.635134}}
+
+{{0.937264,1,0,0.538245,0.0960237,0.189535},2692.2,{Tmax->0.00561119,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.538707,kFb->-9.60327,krb->-0.620929,kTc->-1.*10^-6,kFc->-9.60327,krc->-0.620929}}
+
+{{0.938707,1,0,0.538245,0.0778052,0.518412},4181.15,{Tmax->0.00568626,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.538707,kFb->-7.78144,krb->0.0368245,kTc->-1.*10^-6,kFc->-7.78144,krc->0.0368245}}
+
+{{0.923124,1,0.0140813,0.466412,0.0896829,0.524435},1999.46,{Tmax->0.00492603,kTa->-0.0001,kTb->-2.39405*10^-6,kFa->-0.466946,kFb->-8.9692,krb->0.0488703,kTc->-2.39405*10^-6,kFc->-8.9692,krc->0.0488703}}
+
+{{0.931792,1,0.0140813,0.667423,0.0896829,0.861542},643.292,{Tmax->0.0053354,kTa->-0.0001,kTb->-2.39405*10^-6,kFa->-0.667756,kFb->-8.9692,krb->0.723084,kTc->-2.39405*10^-6,kFc->-8.9692,krc->0.723084}}
+
+{{1,1,0.0140813,0.76206,0.0103946,0.101353},5399.89,{Tmax->1/100,kTa->-0.0001,kTb->-2.39405*10^-6,kFa->-0.762298,kFb->-1.04045,krb->-0.797293,kTc->-2.39405*10^-6,kFc->-1.04045,krc->-0.797293}}
+
+{{1,1,0,0.59919,0.0261395,0.939777},1800.59,{Tmax->1/100,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.59959,kFb->-2.61492,krb->0.879553,kTc->-1.*10^-6,kFc->-2.61492,krc->0.879553}}
+
+{{0.966669,1,0,0.645704,0.0762052,0.231538},1727.88,{Tmax->0.00735656,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.646058,kFb->-7.62144,krb->-0.536924,kTc->-1.*10^-6,kFc->-7.62144,krc->-0.536924}}
+
+{{0.990874,1,0,0.474572,0.0538293,0.594599},3568.42,{Tmax->0.00919382,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.475098,kFb->-5.38387,krb->0.189197,kTc->-1.*10^-6,kFc->-5.38387,krc->0.189197}}
+
+{{0.990874,1,0,0.641128,0.0538293,0},10264.3,{Tmax->0.00919382,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.641487,kFb->-5.38387,krb->-1,kTc->-1.*10^-6,kFc->-5.38387,krc->-1}}
+
+{{0.874771,1,0,0.4263,0.0237235,0.0665124},2541.39,{Tmax->0.00315561,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.426873,kFb->-2.37333,krb->-0.866975,kTc->-1.*10^-6,kFc->-2.37333,krc->-0.866975}}
+
+{{0.902264,1,0,0.338467,0.150155,0.513802},8.28845*10^186,{Tmax->0.00406494,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.339128,kFb->-15.0163,krb->0.0276048,kTc->-1.*10^-6,kFc->-15.0163,krc->0.0276048}}
+
+{{1,1,0.0154449,0.0421899,0,0.896776},21975.8,{Tmax->1/100,kTa->-0.0001,kTb->-2.52905*10^-6,kFa->-0.0431477,kFb->-0.001,krb->0.793552,kTc->-2.52905*10^-6,kFc->-0.001,krc->0.793552}}
+
+{{0.902862,1,0.0440266,0,0,1},94004.6,{Tmax->0.0040874,kTa->-0.0001,kTb->-5.35863*10^-6,kFa->-0.001,kFb->-0.001,krb->1,kTc->-5.35863*10^-6,kFc->-0.001,krc->1}}
+
+{{0.99917,1,0.0171858,0,0,0},21577.6,{Tmax->0.00992388,kTa->-0.0001,kTb->-2.70139*10^-6,kFa->-0.001,kFb->-0.001,krb->-1,kTc->-2.70139*10^-6,kFc->-0.001,krc->-1}}
+
+{{0.896083,1,0.0363937,0.00969349,0,0.1542},1630.82,{Tmax->0.00384,kTa->-0.0001,kTb->-4.60298*10^-6,kFa->-0.0106838,kFb->-0.001,krb->-0.691601,kTc->-4.60298*10^-6,kFc->-0.001,krc->-0.691601}}
+
+{{0.989095,1,0.00359505,0,0,0.532602},39956.4,{Tmax->0.00904441,kTa->-0.0001,kTb->-1.35591*10^-6,kFa->-0.001,kFb->-0.001,krb->0.0652033,kTc->-1.35591*10^-6,kFc->-0.001,krc->0.0652033}}
+
+{{0.989095,1,0.0283452,0,0,0.137795},18025.3,{Tmax->0.00904441,kTa->-0.0001,kTb->-3.80618*10^-6,kFa->-0.001,kFb->-0.001,krb->-0.724409,kTc->-3.80618*10^-6,kFc->-0.001,krc->-0.724409}}
+
+{{0.910457,1,0.0456945,0,0,0.585618},166590.,{Tmax->0.00438356,kTa->-0.0001,kTb->-5.52376*10^-6,kFa->-0.001,kFb->-0.001,krb->0.171237,kTc->-5.52376*10^-6,kFc->-0.001,krc->0.171237}}
+
+{{0.964392,1,0.0527883,0,0,0.154611},80171.5,{Tmax->0.00720389,kTa->-0.0001,kTb->-6.22604*10^-6,kFa->-0.001,kFb->-0.001,krb->-0.690778,kTc->-6.22604*10^-6,kFc->-0.001,krc->-0.690778}}
+
+{{1,1,0.0162735,0,0,0.979925},56858.2,{Tmax->1/100,kTa->-0.0001,kTb->-2.61108*10^-6,kFa->-0.001,kFb->-0.001,krb->0.95985,kTc->-2.61108*10^-6,kFc->-0.001,krc->0.95985}}
+
+- - -
+
+Not bad:
+{0.966669,1,0,0.645704,0.0762052,0.231538}
+
+
+- - - 
+
+Looks good for Ap, 4
+
+In[32]:= physicsGeneToRules[20]
+
+Out[32]= {Tmax -> 0.00179702, kTa -> -0.0001, kTb -> -5.79837*10^-6, 
+ kFa -> -0.568908, kFb -> -9.14654, krb -> -0.367788, 
+ kTc -> -5.79837*10^-6, kFc -> -9.14654, krc -> -0.367788}
+
+In[35]:= genes[[20]]
+
+Out[35]= {0.813638, 1, 0.0484684, 0.568476, 0.0914563, 0.316106}
+
+- - - 
+
+Looks so so for Ap, 1
+
+{Tmax->1/100,kTa->-0.0001,kTb->-5.24068*10^-6,kFa->-0.001,kFb->-0.001,krb->-0.305359,kTc->-5.24068*10^-6,kFc->-0.001,krc->-0.305359}
+
+{1,1,0.0428352,0,0,0.347321}
+
+{{{10.,0.239127,66.3896},
+{10.,0.00443041,1.59175}},{{10.,0.232681,68.8254},{10.,0.00443041,1.59175}},
+{{0.04,-0.0001,-0.0001},{0.04,0.00550653,4.49608}},{{10.,0.23496,68.6017},
+{10.,0.00417637,2.48587}},{{0.04,-0.0001,-0.0001},{0.04,0.0104845,4.1964}},{{10.,0.229374,69.3391},{10.,0.0146378,0.703453}},{{0.07,-0.0001,-0.0001},{0.07,0.00685154,4.51477}},
+{{10.,0.22497,68.9413},{10.,0.00917901,1.58644}},
+{{0.04,-0.0001,-0.0001},{0.04,0.00929578,4.12972}},
+{{10.,0.290785,69.1101},{10.,0.0120847,2.12298}}}
+
+- - -
+
+Bo, 3
+
+{{0.393114,0.79338,0.584896,0.0715843,0.412925,0.798408},1.47897*10^7,{Tmax->0.0000373644,kTa->-0.0207413,kTb->-0.0000589047,kFa->-0.0725127,kFb->-41.2931,krb->0.596815,kTc->-0.0000589047,kFc->-41.2931,krc->0.596815}}
+
+{{0.570101,1,0.621373,0.964465,0.486417,0.803591},37.5186,{Tmax->0.000190724,kTa->-0.0001,kTb->-0.000062516,kFa->-0.9645,kFb->-48.6423,krb->0.607182,kTc->-0.000062516,kFc->-48.6423,krc->0.607182}}
+
+{{0.518086,0.977717,0.619515,1,0.703179,0.812793},7.48747*10^6,{Tmax->0.000118126,kTa->-0.00232611,kTb->-0.000062332,kFa->-1.,kFb->-70.3182,krb->0.625585,kTc->-0.000062332,kFc->-70.3182,krc->0.625585}}
+
+{{0.597107,0.989763,0.474453,0.924291,0.703179,0.304487},2.82863*10^7,{Tmax->0.000244584,kTa->-0.00112268,kTb->-0.0000479709,kFa->-0.924367,kFb->-70.3182,krb->-0.391027,kTc->-0.0000479709,kFc->-70.3182,krc->-0.391027}}
+
+{{0.574215,1,0.279551,0.924291,0.703179,1},5.14301*10^7,{Tmax->0.000198089,kTa->-0.0001,kTb->-0.0000286755,kFa->-0.924367,kFb->-70.3182,krb->1,kTc->-0.0000286755,kFc->-70.3182,krc->1}}
+
+{{0.674303,1,0.00106523,1,0.523402,0.14825},228.737,{Tmax->0.000497982,kTa->-0.0001,kTb->-1.10546*10^-6,kFa->-1.,kFb->-52.3407,krb->-0.7035,kTc->-1.10546*10^-6,kFc->-52.3407,krc->-0.7035}}
+
+{{0.696031,1,0,1,0.670667,0.352966},2.67236*10^8,{Tmax->0.00060831,kTa->-0.0001,kTb->-1.*10^-6,kFa->-1.,kFb->-67.067,krb->-0.294067,kTc->-1.*10^-6,kFc->-67.067,krc->-0.294067}}
+
+{{0.674906,1,0.0206495,0.80304,0.670667,0.169507},2.15019*10^8,{Tmax->0.000500753,kTa->-0.0001,kTb->-3.0443*10^-6,kFa->-0.803237,kFb->-67.067,krb->-0.660985,kTc->-3.0443*10^-6,kFc->-67.067,krc->-0.660985}}
+
+{{0.627829,1,0.177,1,0.919237,0.543696},3.26276*10^7,{Tmax->0.000324574,kTa->-0.0001,kTb->-0.000018523,kFa->-1.,kFb->-91.9237,krb->0.0873923,kTc->-0.000018523,kFc->-91.9237,krc->0.0873923}}
+
+{{0.740798,1,0,0.754379,0.466785,0.805641},408.592,{Tmax->0.000918739,kTa->-0.0001,kTb->-1.*10^-6,kFa->-0.754624,kFb->-46.679,krb->0.611281,kTc->-1.*10^-6,kFc->-46.679,krc->0.611281}}
+
+not a bad one, works on 
+
+{Tmax->0.000500753,kTa->-0.0001,kTb->-0.0000171353,kFa->-1.,kFb->-63.5601,krb->0.269987,kTc->-0.0000171353,kFc->-63.5601,krc->0.269987}
+
+- - -
+
+Simulation is working.  Let's see if it keeps it up.  CHECK RESULTS TOMORROW!
+
+The results are in.  Ran with
+
+#define TIME_MAX         20.0
+#define TARGET_DISTANCE  (0.04 * METERS)
+
+
+- - - 
+
+Not working:
+/Applications/Mathematica.app/SystemFiles/Links/MathLink/DeveloperKit/CompilerAdditions/mprep
+run-simulation.h -o run-simulation-mlinktm.c
+
+cc -g -I../include -Wall -Werror -I/opt/local/include -DRK4 -I
+/Applications/Mathematica.app/SystemFiles/Links/MathLink/DeveloperKit/CompilerAdditions
+-c -o run-simulation-mlinktm.o run-simulation-mlinktm.c
+
+
+Working:
+
+/Applications/Mathematica.app/SystemFiles/Links/MathLink/DeveloperKit/CompilerAdditions/mprep
+run-simulation-mlink.tm -o run-simulation-mlinktm.c
+
+cc -g -I../include -Wall -Werror -I/opt/local/include -DRK4 -I
+/Applications/Mathematica.app/SystemFiles/Links/MathLink/DeveloperKit/CompilerAdditions
+-c -o run-simulation-mlinktm.o run-simulation-mlinktm.c
+
+Looks exactly the same.
+
+* Amazon EC2 instance
+  ssh -i scelis.pem ec2-user@ec2-75-101-238-63.compute-1.amazonaws.com
+* BUGS
+  - memory leak... FIXED!
+
+* What is the problem?
+  Maybe the tadpole form can't move forward by tail motion?
+
+* Is the final genome actually represented in the population?
+
+XXX Left off trying to find better physics constants again.  :(
+* Statistical significance
+When the likelihood that a result occurred by chance alone is below a
+certain level, one or more asterisks are displayed. Popular
+significance levels are 0.05 (*), 0.01 (**), and 0.001 (***).
+
+* Examine the winner's in the results
+
+* OMG!
+
+  When the fitness function changes, it's not clear that we check to
+  see if the winners would actually beat it.  Everyone in the
+  population needs to be reevaluated.
+
+* For running things I'm using:
+$ run-expr-all -P 2 -i 3 -c 98 res2 > run.cmds
+$ run-cmds-parallel -s SIGUSR1 -p 8 < run.cmds | tee run.output
+
+* I should have an option to save the population between phases

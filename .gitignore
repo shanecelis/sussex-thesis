@@ -1,0 +1,38 @@
+# ignore object files:
+*.o
+*.mo
+
+# binaries
+alps_main
+frog_eval
+run-sim-main
+parenparser
+run-simulation-mlink
+
+# temp files
+frogq.al
+parenparser.hi
+tmp/*
+src/alTmp.*
+
+# includes
+
+# results
+res*
+/doc/*.log
+/doc/*.make
+/doc/*.temp
+/doc/thesis.aux
+/doc/thesis.bbl
+/doc/thesis.blg
+/doc/thesis.brf
+/doc/thesis.d
+/doc/thesis.fls
+/doc/thesis.lof
+/doc/thesis.lot
+/doc/thesis.out
+/doc/thesis.toc
+/doc/thesis.pdf
+/src/frogu.al
+/src/solve-matrix
+/src/siman_test
